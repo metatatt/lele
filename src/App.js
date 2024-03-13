@@ -1,60 +1,68 @@
-import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect, useRef } from "react";
 
-class App extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      name: '',
-      greeting: ''
-    };
-    this.handleChange = this.handleChange.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
-  }
+const App = () => {
+  const videoRef = useRef(null);
+  const photoRef = useRef(null);
+  const stripRef = useRef(null);
 
-  handleChange(event) {
-    this.setState({ name: event.target.value });
-  }
+  useEffect(() => {
+    getVideo();
+  }, [videoRef]);
 
-  handleSubmit(event) {
-    event.preventDefault();
-    fetch(`/api/greeting?name=${encodeURIComponent(this.state.name)}`)
-      .then(response => response.json())
-      .then(state => this.setState(state));
-  }
+  const getVideo = () => {
+    navigator.mediaDevices
+      .getUserMedia({ video: { width: 480 } })
+      .then(stream => {
+        let video = videoRef.current;
+        video.srcObject = stream;
+        video.play();
+      })
+      .catch(err => {
+        console.error("error:", err);
+      });
+  };
 
-  render() {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <form onSubmit={this.handleSubmit}>
-            <label htmlFor="name">Enter your name: </label>
-            <input
-              id="name"
-              type="text"
-              value={this.state.name}
-              onChange={this.handleChange}
-            />
-            <button type="submit">Submit</button>
-          </form>
-          <p>{this.state.greeting}</p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
+  const paintToCanvas = () => {
+    let video = videoRef.current;
+    let photo = photoRef.current;
+    let ctx = photo.getContext("2d");
+
+    const width = 320;
+    const height = 240;
+    photo.width = width;
+    photo.height = height;
+
+    return setInterval(() => {
+      ctx.drawImage(video, 0, 0, width, height);
+    }, 200);
+  };
+
+  const takePhoto = () => {
+    let photo = photoRef.current;
+    let strip = stripRef.current;
+
+    console.warn(strip);
+
+    const data = photo.toDataURL("image/jpeg");
+
+    console.warn(data);
+    const link = document.createElement("a");
+    link.href = data;
+    link.setAttribute("download", "myWebcam");
+    link.innerHTML = `<img src='${data}' alt='thumbnail'/>`;
+    strip.insertBefore(link, strip.firstChild);
+  };
+
+  return (
+    <div>
+      <button onClick={() => takePhoto()}>Take a photo</button>
+      <video onCanPlay={() => paintToCanvas()} ref={videoRef} />
+      <canvas ref={photoRef} />
+      <div>
+        <div ref={stripRef} />
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 export default App;
